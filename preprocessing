@@ -1,0 +1,20 @@
+B1. QIIME2 Commands 
+# Activate QIIME2 environment 
+conda activate qiime2-amplicon.2024.10   
+# 1. Import demultiplexed paired-end reads (already demuxed) 
+qiime tools import \ --type 'SampleData[PairedEndSequencesWithQuality]'  --input-path 
+manifest.csv --output-path paired-end-demux.qza --input-format 
+PairedEndFastqManifestPhred33V2 
+# 2. Visualize demux quality 
+qiime demux summarize \ --i-data paired-end-demux.qza --o-visualization paired-end
+demux.qzv 
+# 3. Denoise using DADA2 
+qiime dada2 denoise-paired \ --i-demultiplexed-seqs paired-end-demux.qza \ --p-trunc-len-f 250 \ #adjust accordingly --p-trunc-len-r 200 \ #adjust accordingly --o-table table.qza --o-representative-sequences rep-seqs.qza --o
+denoising-stats denoising-stats.qza 
+# 4. Assign taxonomy using pre-trained classifier (e.g., SILVA) 
+qiime feature-classifier classify-sklearn \ --i-classifier silva-138-99-nb-classifier.qza \ --i-reads rep-seqs.qza  --o-classification taxonomy.qza 
+qiime metadata tabulate \ --m-input-file taxonomy.qza  --o-visualization taxonomy.qzv 
+# 5. Collapse feature table to Genus level (Level 6) 
+qiime taxa collapse \ --i-table table.qza --i-taxonomy taxonomy.qza --p-level 6  --o
+collapsed-table table-genus.qza 
+qiime feature-table filter-features \ --i-table table-genus.qza \ --p-min-samples 10  --p-min-mean-frequency 0.0005 \ --o-filtered-table table-genus-filtered.qza 
